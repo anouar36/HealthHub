@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!-- Connection settings -->
+        <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
+        <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/HealthHub</property>
+        <property name="hibernate.connection.username">postgres</property>
+        <property name="hibernate.connection.password">anwar36flow</property>
+
+        <!-- Hibernate settings -->
+        <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
+        <property name="hibernate.hbm2ddl.auto">validate</property>
+        <property name="hibernate.show_sql">true</property>
+
+        <!-- ✅ Mapped classes -->
+        <mapping class="org.example.healthhub.entity.User"/>
+        <mapping class="org.example.healthhub.entity.Doctor"/>
+        <mapping class="org.example.healthhub.entity.Patient"/>
+        <mapping class="org.example.healthhub.entity.Department"/>
+        <mapping class="org.example.healthhub.entity.Specialty"/>
+        <mapping class="org.example.healthhub.entity.Appointment"/>
+        <mapping class="org.example.healthhub.entity.Availability"/>
+    </session-factory>
+</hibernate-configuration>
