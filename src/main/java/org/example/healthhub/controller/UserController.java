@@ -29,15 +29,19 @@
     import jakarta.servlet.http.HttpServlet;
     import jakarta.servlet.http.HttpServletRequest;
     import jakarta.servlet.http.HttpServletResponse;
-    import org.example.healthhub.service.DepartmentService;
-    import org.example.healthhub.service.DoctorService;
-    import org.example.healthhub.service.PatientService;
-    import org.example.healthhub.service.UserService;
+    import org.example.healthhub.service.*;
+
 
     import java.awt.print.PrinterException;
     import java.io.BufferedReader;
     import java.io.IOException;
+    import com.fasterxml.jackson.databind.ObjectMapper;
+
+
+    import java.time.DayOfWeek;
     import java.time.LocalDate;
+    import java.time.LocalTime;
+    import java.time.format.DateTimeFormatter;
     import java.util.*;
 
     @WebServlet("/user/*")
@@ -47,6 +51,8 @@
         private final DoctorService doctorService = new DoctorService();
         private final DepartmentService departmentService = new DepartmentService();
         private final PatientService patientService = new PatientService();
+        private final AvailabilityService availabilityService = new AvailabilityService();
+
 
 
 
@@ -168,20 +174,23 @@
                 req.getRequestDispatcher("/Admin/Department.jsp").forward(req, resp);
                 return;
             }
-            if("/doctors".equals(pathInfo)){
+            if ("/admin".equals(pathInfo)){
+                req.getRequestDispatcher("/Admin/admin.jsp").forward(req,resp);
+            }
+            if ("/doctors".equals(pathInfo)) {
                 System.out.println("hellow in doctors page ");
                 List<DoctorDTO> doctors = doctorService.getAllDoctor();
-                req.setAttribute("doctors",doctors);
-                req.setAttribute("totalDoctors",doctors.size());
+                req.setAttribute("doctors", doctors);
+                req.setAttribute("totalDoctors", doctors.size());
                 req.getRequestDispatcher("/Admin/doctors.jsp").forward(req, resp);
                 return;
             }
-            if("/patients".equals(pathInfo)){
-            System.out.println("welcom to patients");
-            List<PatientDTO> patients = patientService.getAllPatients();
-            req.setAttribute("patients",patients);
-            req.setAttribute("totalPatients",patients.size());
-            //req.getRequestDispatcher("Admin/patients.jsp").forward(req,resp);
+            if ("/patients".equals(pathInfo)) {
+                System.out.println("welcom to patients");
+                List<PatientDTO> patients = patientService.getAllPatients();
+                req.setAttribute("patients", patients);
+                req.setAttribute("totalPatients", patients.size());
+                //req.getRequestDispatcher("Admin/patients.jsp").forward(req,resp);
                 req.getRequestDispatcher("/Admin/patients.jsp").forward(req, resp);  // ← زيد / فـ البداية
 
 
@@ -231,46 +240,225 @@
                 System.out.println("====================================");
                 return;
             }
-            if("/addDoctor".equals(pathInfo)){
+            if ("/addDoctor".equals(pathInfo)) {
                 System.out.println("welcom to add Doctore ");
                 req.getRequestDispatcher("/Admin/addDoctor.jsp").forward(req, resp);
                 return;
 
             }
-            if("/doctorAvailability".equals(pathInfo)){
+            if ("/doctorAvailability".equals(pathInfo)) {
                 System.out.println("welcom to doctorAvailability");
-                req.getRequestDispatcher("/Admin/doctorAvailability.jsp").forward(req,resp);
+                req.getRequestDispatcher("/Admin/doctorAvailability.jsp").forward(req, resp);
 
             }
-            if("/availabilities".equals(pathInfo)){
-                System.out.println("welcom to availabilities");
+            if ("/availabilities".equals(pathInfo)) {
+                System.out.println("====================================");
+                System.out.println("📅 /availabilities endpoint called");
+                System.out.println("====================================");
 
-                List<DepartmentDTO> departments = departmentService.getAllDepartments();
-                req.setAttribute("departments", departments);
+                try {
+                    // ✅ 1. Get departments
+                    List<DepartmentDTO> departments = departmentService.getAllDepartments();
+                    req.setAttribute("departments", departments);
+                    System.out.println("✅ Loaded " + departments.size() + " departments");
 
-                // Get doctors grouped by department
-                Map<String, List<DoctorDepartmentSpecialtyDTO>> doctorsByDept = new HashMap<>();
-                for (DepartmentDTO dept : departments) {
-                    List<DoctorDepartmentSpecialtyDTO> doctors = doctorService.getDoctorsByDepartmentId(dept.getCode());
-                    doctorsByDept.put(dept.getCode(), doctors);
+                    // ✅ 2. Get doctors grouped by department
+                    Map<String, List<DoctorDepartmentSpecialtyDTO>> doctorsByDept = new HashMap<>();
+                    for (DepartmentDTO dept : departments) {
+                        List<DoctorDepartmentSpecialtyDTO> doctors = doctorService.getDoctorsByDepartmentId(dept.getCode());
+                        doctorsByDept.put(dept.getCode(), doctors);
+                    }
+                    req.setAttribute("doctorsByDept", doctorsByDept);
+                    System.out.println("✅ Loaded doctors for " + doctorsByDept.size() + " departments");
+
+                    // ✅ 3. Calculate current week dates
+                    int weekOffset = 0;
+                    String offsetParam = req.getParameter("weekOffset");
+                    if (offsetParam != null) {
+                        try {
+                            weekOffset = Integer.parseInt(offsetParam);
+                        } catch (NumberFormatException e) {
+                            weekOffset = 0;
+                        }
+                    }
+
+                    LocalDate today = LocalDate.now();
+                    LocalDate weekStart = today.plusWeeks(weekOffset).with(DayOfWeek.MONDAY);
+
+                    List<Map<String, Object>> weekDates = new ArrayList<>();
+                    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+                    for (int i = 0; i < 7; i++) {
+                        LocalDate date = weekStart.plusDays(i);
+                        Map<String, Object> dateInfo = new HashMap<>();
+
+                        dateInfo.put("date", date.format(dateFormatter)); // "2025-10-21"
+                        dateInfo.put("dayOfWeek", date.getDayOfWeek().toString()); // "MONDAY"
+                        dateInfo.put("dayOfMonth", date.getDayOfMonth()); // 21
+                        dateInfo.put("monthName", date.getMonth().toString()); // "OCTOBER"
+                        dateInfo.put("year", date.getYear()); // 2025
+                        dateInfo.put("isPast", date.isBefore(today));
+                        dateInfo.put("isWeekend",
+                                date.getDayOfWeek() == DayOfWeek.SATURDAY ||
+                                        date.getDayOfWeek() == DayOfWeek.SUNDAY
+                        );
+
+                        weekDates.add(dateInfo);
+                    }
+
+                    req.setAttribute("weekDates", weekDates);
+                    req.setAttribute("weekOffset", weekOffset);
+                    req.setAttribute("today", today.format(dateFormatter));
+
+                    System.out.println("✅ Generated week dates: " + weekStart.format(dateFormatter) +
+                            " to " + weekStart.plusDays(6).format(dateFormatter));
+
+                    // ✅ 4. If doctor + date selected, get available time slots
+                    String doctorIdParam = req.getParameter("doctorId");
+                    String dateParam = req.getParameter("date");
+
+                    if (doctorIdParam != null && dateParam != null && !dateParam.trim().isEmpty()) {
+                        try {
+                            Integer doctorId = Integer.parseInt(doctorIdParam);
+                            LocalDate selectedDate = null;
+
+                            // Smart parsing: handle both "2025-10-21" and "21"
+                            if (dateParam.length() > 2 && dateParam.contains("-")) {
+                                // Full date format
+                                selectedDate = LocalDate.parse(dateParam, dateFormatter);
+                            } else {
+                                // Day number only - build from week
+                                int dayOfMonth = Integer.parseInt(dateParam);
+                                for (Map<String, Object> d : weekDates) {
+                                    if ((Integer) d.get("dayOfMonth") == dayOfMonth) {
+                                        selectedDate = LocalDate.parse((String) d.get("date"), dateFormatter);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (selectedDate != null) {
+                                System.out.println("🔍 Fetching slots for doctor " + doctorId + " on " + selectedDate);
+
+                                List<String> availableSlots = availabilityService.getAvailableSlots(doctorId, selectedDate);
+
+                                req.setAttribute("availableSlots", availableSlots);
+                                req.setAttribute("selectedDate", selectedDate.format(dateFormatter));
+                                req.setAttribute("selectedDoctorId", doctorId);
+
+                                System.out.println("✅ Found " + availableSlots.size() + " slots");
+                            }
+
+                        } catch (Exception e) {
+                            System.err.println("❌ Error:");
+                            e.printStackTrace();
+                        }
+                    }
+
+                    // ✅ 5. Get current patient info
+                    String username = (String) req.getSession().getAttribute("username");
+                    if (username != null) {
+                        Optional<PatientDTO> patient = patientService.getPatientByUsername(username);
+                        req.setAttribute("patient", patient.orElse(null));
+                    }
+
+                    // ✅ Forward to JSP
+                    req.getRequestDispatcher("/Admin/availability.jsp").forward(req, resp);
+
+                } catch (Exception e) {
+                    System.err.println("❌ Error in /availabilities:");
+                    e.printStackTrace();
+
+                    // Set fallback empty data
+                    req.setAttribute("departments", new ArrayList<>());
+                    req.setAttribute("doctorsByDept", new HashMap<>());
+                    req.setAttribute("weekDates", new ArrayList<>());
+                    req.setAttribute("availableSlots", new ArrayList<>());
+                    req.setAttribute("error", "Failed to load booking page: " + e.getMessage());
+
+                    req.getRequestDispatcher("/Admin/availability.jsp").forward(req, resp);
                 }
-                req.setAttribute("doctorsByDepartment", doctorsByDept);
+            }
+            if ("/book-appointment".equals(pathInfo)){
+                System.out.println("====================================");
+                System.out.println("📝 POST /book-appointment");
+                System.out.println("User: anouar36");
+                System.out.println("====================================");
 
-                String username = (String) req.getSession().getAttribute("username");
-                Optional<PatientDTO>  currentPatient = patientService.getPatientByUsername(username);
-                req.setAttribute("patient", currentPatient);
-                if (username != null) {
-                    Optional<PatientDTO>  patient = patientService.getPatientByUsername(username);
-                    req.setAttribute("patient", patient);
+                try {
+                    // ✅ Get form parameters
+                    String deptCode = req.getParameter("deptCode");
+                    String doctorIdStr = req.getParameter("doctorId");
+                    String date = req.getParameter("date");
+                    String time = req.getParameter("time");
+
+                    System.out.println("📋 Booking Details:");
+                    System.out.println("   Department: " + deptCode);
+                    System.out.println("   Doctor ID: " + doctorIdStr);
+                    System.out.println("   Date: " + date);
+                    System.out.println("   Time: " + time);
+
+                    // ✅ Validate parameters
+                    if (doctorIdStr == null || date == null || time == null) {
+                        System.err.println("❌ Missing required parameters");
+                        resp.sendRedirect(req.getContextPath() +
+                                "/user/availabilities?error=missing-params&step=3&doctorId=" + doctorIdStr + "&date=" + date);
+                        return;
+                    }
+
+                    Integer doctorId = Integer.parseInt(doctorIdStr);
+
+                    // ✅ Get current patient (anouar36)
+                    String username = "anouar36"; // current user
+                    Optional<PatientDTO> patientOpt = patientService.getPatientByUsername(username);
+
+                    if (!patientOpt.isPresent()) {
+                        System.err.println("❌ Patient not found: " + username);
+                        resp.sendRedirect(req.getContextPath() +
+                                "/user/availabilities?error=patient-not-found");
+                        return;
+                    }
+
+                    PatientDTO patient = patientOpt.get();
+                    System.out.println("✅ Patient found: " + patient.getNom() + " (ID: " + patient.getId() + ")");
+
+                    // ✅ Book appointment
+                    boolean success = availabilityService.bookAppointment(
+                            doctorId,
+                            patient.getId(),
+                            date,
+                            time
+                    );
+
+                    if (success) {
+                        System.out.println("✅ ✅ ✅ APPOINTMENT BOOKED SUCCESSFULLY! ✅ ✅ ✅");
+                        System.out.println("   Doctor: " + doctorId);
+                        System.out.println("   Patient: " + patient.getNom());
+                        System.out.println("   Date: " + date);
+                        System.out.println("   Time: " + time);
+
+                        // Redirect to success page with confirmation
+                        resp.sendRedirect(req.getContextPath() +
+                                "/user/availabilities?success=true&date=" + date + "&time=" + time);
+
+                    } else {
+                        System.err.println("❌ Failed to book appointment (slot already taken)");
+                        resp.sendRedirect(req.getContextPath() +
+                                "/user/availabilities?error=booking-failed&step=3&doctorId=" + doctorId + "&date=" + date);
+                    }
+
+                } catch (Exception e) {
+                    System.err.println("❌ Exception while booking:");
+                    e.printStackTrace();
+                    resp.sendRedirect(req.getContextPath() +
+                            "/user/availabilities?error=system-error");
                 }
-                req.getRequestDispatcher("/Admin/availability.jsp").forward(req, resp);
-
             }
         }
 
+
         @Override
         protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-
             String action = req.getParameter("action");
             String pathInfo = req.getPathInfo();
             System.out.println("path Info = " + pathInfo);
@@ -797,6 +985,73 @@
                 }
                 return;
             }
+            if ("/book-appointment".equals(pathInfo)) {
+                System.out.println("====================================");
+                System.out.println("📝 POST /book-appointment");
+                System.out.println("User: anouar36");
+                System.out.println("====================================");
+
+                try {
+                    String deptCode = req.getParameter("deptCode");
+                    String doctorIdStr = req.getParameter("doctorId");
+                    String date = req.getParameter("date");
+                    String time = req.getParameter("time");
+
+                    System.out.println("📋 Booking Details:");
+                    System.out.println("   Department: " + deptCode);
+                    System.out.println("   Doctor ID: " + doctorIdStr);
+                    System.out.println("   Date: " + date);
+                    System.out.println("   Time: " + time);
+
+                    if (doctorIdStr == null || date == null || time == null) {
+                        System.err.println("❌ Missing required parameters");
+                        resp.sendRedirect(req.getContextPath() + "/user/availabilities?error=missing-params");
+                        return;
+                    }
+
+                    Integer doctorId = Integer.parseInt(doctorIdStr);
+
+                    // Get patient
+                    String username = (String) req.getSession().getAttribute("username");
+                    if (username == null) {
+                        username = "anouar36"; // fallback
+                    }
+
+                    Optional<PatientDTO> patientOpt = patientService.getPatientByUsername(username);
+
+                    if (!patientOpt.isPresent()) {
+                        System.err.println("❌ Patient not found: " + username);
+                        resp.sendRedirect(req.getContextPath() + "/user/availabilities?error=patient-not-found");
+                        return;
+                    }
+
+                    PatientDTO patient = patientOpt.get();
+                    System.out.println("✅ Patient found: " + patient.getNom() + " (ID: " + patient.getId() + ")");
+
+                    // Book appointment
+                    boolean success = availabilityService.bookAppointment(doctorId, patient.getId(), date, time);
+
+                    if (success) {
+                        System.out.println("✅ ✅ ✅ APPOINTMENT BOOKED! ✅ ✅ ✅");
+                        System.out.println("   Doctor: " + doctorId);
+                        System.out.println("   Patient: " + patient.getNom());
+                        System.out.println("   Date: " + date);
+                        System.out.println("   Time: " + time);
+
+                        resp.sendRedirect(req.getContextPath() + "/user/availabilities?success=true&date=" + date + "&time=" + time);
+                    } else {
+                        System.err.println("❌ Booking failed");
+                        resp.sendRedirect(req.getContextPath() + "/user/availabilities?error=booking-failed");
+                    }
+
+                } catch (Exception e) {
+                    System.err.println("❌ Exception:");
+                    e.printStackTrace();
+                    resp.sendRedirect(req.getContextPath() + "/user/availabilities?error=system-error");
+                }
+            }
+
+
 
             }
 

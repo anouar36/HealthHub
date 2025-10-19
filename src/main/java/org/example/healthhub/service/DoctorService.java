@@ -12,6 +12,7 @@
         import org.example.healthhub.repository.implement.UserDAO;
         import org.modelmapper.ModelMapper;
 
+        import java.util.Collections;
         import java.util.List;
         import java.util.stream.Collectors;
 
@@ -132,23 +133,53 @@
             }
 
             public List<DoctorDepartmentSpecialtyDTO> getDoctorsByDepartmentId(String departmentId) {
-                List<Doctor> doctors = doctorDAO.findByDepartmentId(departmentId);
-                return doctors.stream()
-                        .map(doctor -> {
+                try {
+                    List<Doctor> doctors = doctorDAO.findByDepartmentId(departmentId);
 
-                            DoctorDepartmentSpecialtyDTO dto = modelMapper.map(doctor,DoctorDepartmentSpecialtyDTO.class);
+                    if (doctors == null || doctors.isEmpty()) {
+                        System.out.println("⚠️ No doctors found for dept: " + departmentId);
+                        return Collections.emptyList();
+                    }
 
-                            // Add specialty name
-                            if (doctor.getSpecialty() != null) {
-                                dto.setDepartmentName(doctor.getSpecialty().getDepartment().getNom());
+                    return doctors.stream().map(doctor -> {
+                        DoctorDepartmentSpecialtyDTO dto = new DoctorDepartmentSpecialtyDTO();
+
+                        // Basic fields
+                        dto.setId(doctor.getId());
+                        dto.setMatricule(doctor.getMatricule());
+                        dto.setTitre(doctor.getTitre());
+
+                        // User fields
+                        if (doctor.getUser() != null) {
+                            dto.setNom(doctor.getUser().getNom());
+                            dto.setEmail(doctor.getUser().getEmail());
+                            dto.setActif(doctor.getUser().getActif());
+                        }
+
+                        // Specialty & Department fields (safe access)
+                        if (doctor.getSpecialty() != null) {
+                            try {
                                 dto.setSpecialtyId(doctor.getSpecialty().getId());
+                                dto.setSpecialite(doctor.getSpecialty().getNom());
+
+                                // Department inside specialty
+                                if (doctor.getSpecialty().getDepartment() != null) {
+                                    dto.setDepartmentCode(doctor.getSpecialty().getDepartment().getCode());
+                                    dto.setDepartmentName(doctor.getSpecialty().getDepartment().getNom());
+                                }
+                            } catch (Exception e) {
+                                System.err.println("⚠️ LazyInit error for doctor " + doctor.getId());
+                                dto.setSpecialite("Unknown");
                             }
-                            // Add department ID
-                            if (doctor.getSpecialty() != null && doctor.getSpecialty().getDepartment() != null) {
-                                dto.setDepartmentCode(doctor.getSpecialty().getDepartment().getCode());
-                            }
-                            return dto;
-                        })
-                        .collect(Collectors.toList());
+                        }
+
+                        return dto;
+                    }).collect(Collectors.toList());
+
+                } catch (Exception e) {
+                    System.err.println("❌ DoctorService error:");
+                    e.printStackTrace();
+                    return Collections.emptyList();
+                }
             }
         }

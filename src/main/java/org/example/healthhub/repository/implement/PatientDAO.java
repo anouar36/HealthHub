@@ -118,20 +118,7 @@ public class PatientDAO implements PatientRepository {
         }
     }
 
-    /**
-     * Find patient by ID
-     */
-    public Patient findById(Integer id) {
-        Session session = sessionFactory.openSession();
 
-        try {
-            return session.get(Patient.class, id);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to find patient", e);
-        } finally {
-            session.close();
-        }
-    }
     @Override
     public Optional<Patient> findByEmail(String email) {
         EntityManager em = emf.createEntityManager();
@@ -321,48 +308,59 @@ public class PatientDAO implements PatientRepository {
     }
 
     public Optional<Patient> findByUsername(String username) {
-        if (username == null || username.trim().isEmpty()) {
-            System.out.println("⚠️ PatientDAO: findByUsername called with null/empty username");
-            return Optional.empty();
-        }
-
         EntityManager em = emf.createEntityManager();
         try {
-            CriteriaBuilder cb = em.getCriteriaBuilder();
-            CriteriaQuery<Patient> cq = cb.createQuery(Patient.class);
-            Root<Patient> patientRoot = cq.from(Patient.class);
+            System.out.println("🔍 PatientDAO: Finding patient by username: " + username);
 
-            Predicate predicate;
+            // ✅ Query via inherited User fields
+            String jpql = "SELECT p FROM Patient p " +
+                    "WHERE p.email = :username " +  // email field من User
+                    "AND p.actif = true";
 
-            // Attempt to detect if Patient entity has a "user" attribute
-            boolean hasUserAttribute = true;
-            try {
-                em.getMetamodel().entity(Patient.class).getAttribute("user");
-            } catch (IllegalArgumentException ex) {
-                hasUserAttribute = false;
+            TypedQuery<Patient> query = em.createQuery(jpql, Patient.class);
+            query.setParameter("username", username);
+            query.setMaxResults(1);
+
+            List<Patient> results = query.getResultList();
+
+            if (results.isEmpty()) {
+                System.out.println("⚠️ PatientDAO: No patient found for: " + username);
+                return Optional.empty();
             }
 
-            if (hasUserAttribute) {
-                // join on user and compare user.username (case-insensitive)
-                Join<Object, Object> userJoin = patientRoot.join("user", JoinType.LEFT);
-                predicate = cb.equal(cb.lower(userJoin.get("username")), username.toLowerCase());
-            } else {
-                // fallback: compare a username/email field on Patient itself
-                // adjust "username" to the actual field name in Patient (e.g., "email" or "cin")
-                predicate = cb.equal(cb.lower(patientRoot.get("username")), username.toLowerCase());
-            }
+            Patient patient = results.get(0);
+            System.out.println("✅ PatientDAO: Found patient ID=" + patient.getId() + ", Nom=" + patient.getNom());
 
-            cq.select(patientRoot).where(predicate);
-
-            List<Patient> list = em.createQuery(cq).setMaxResults(1).getResultList();
-            return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+            return Optional.of(patient);
 
         } catch (Exception e) {
-            System.err.println("❌ PatientDAO: Error in findByUsername: " + e.getMessage());
+            System.err.println("❌ PatientDAO: Error in findByUsername");
             e.printStackTrace();
             return Optional.empty();
         } finally {
-            em.close();
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
+        }
+    }
+
+    /**
+     * Find patient by ID
+     */
+    public Patient findById(Integer id) throws Exception {
+        EntityManager em = emf.createEntityManager();
+        try {
+            Patient patient = em.find(Patient.class, id);
+            if (patient == null) {
+                throw new Exception("Patient with ID " + id + " not found.");
+            }
+            return patient;
+        } catch (Exception e) {
+            throw new Exception("Error while finding patient: " + e.getMessage(), e);
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
         }
     }
 

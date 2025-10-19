@@ -23,34 +23,38 @@
 <div class="flex h-screen">
 
   <!-- Sidebar -->
-  <aside class="w-64 bg-white border-r border-gray-200">
-    <div class="p-6 border-b border-gray-200">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 bg-blue-600 rounded"></div>
-        <span class="font-semibold text-gray-900">Digital Clinic</span>
-      </div>
+  <aside class="w-64 bg-blue-600 text-white flex flex-col">
+    <div class="p-6">
+      <h1 class="text-2xl font-bold">Digital Clinic</h1>
     </div>
-    <nav class="p-4">
-      <a href="#dashboard" class="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded mb-1">
-        Dashboard
+    <nav class="flex-1 px-4">
+      <a href="departments" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
       </a>
-      <a href="#doctors" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded mb-1">
-        Doctors
+      <a href="doctors" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-700 mb-2">
+        <i class="fas fa-user-md"></i>
+        <span>Doctors</span>
       </a>
-      <a href="#patients" class="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded mb-1">
-        Patients
+      <a href="patients" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+        <i class="fas fa-users"></i>
+        <span>Patients</span>
       </a>
-      <a href="#appointments" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded mb-1">
-        Appointments
+      <a href="availabilities" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+        <i class="fas fa-calendar-check"></i>
+        <span>Appointments</span>
       </a>
-      <a href="#reports" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded mb-1">
-        Reports
+      <a href="reports.jsp" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+        <i class="fas fa-chart-bar"></i>
+        <span>Reports</span>
       </a>
-      <a href="#settings" class="block px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded mb-1">
-        Settings
+      <a href="settings.jsp" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-700 mb-2">
+        <i class="fas fa-cog"></i>
+        <span>Settings</span>
       </a>
     </nav>
   </aside>
+
 
   <!-- Main Content -->
   <main class="flex-1 overflow-auto">

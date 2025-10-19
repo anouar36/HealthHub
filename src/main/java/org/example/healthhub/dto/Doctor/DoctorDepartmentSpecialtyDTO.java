@@ -1,43 +1,26 @@
 package org.example.healthhub.dto.Doctor;
 
 public class DoctorDepartmentSpecialtyDTO {
-
     private Integer id;
     private String matricule;
     private String titre;
+    private String nom;              // user.nom
+    private String email;            // user.email
+    private Boolean actif;           // user.actif
+    private Long specialtyId;        // specialty.id
+    private String specialite;       // specialty.nom
+    private String departmentCode;   // specialty.department.code
+    private String departmentName;   // specialty.department.nom
 
-    // User information (from User entity)
-    private String nom;
-    private String prenom;
-    private String email;
-    private String telephone;
 
-    // Specialty information
-    private Long specialtyId;
-    private String specialtyCode;
-    private String specialtyName;
 
-    // Department information
-    private String departmentCode;
-    private String departmentName;
-
-    // Display fields
-    private String fullName;        // "Dr. Sarah Johnson"
-    private String experience;      // "15 years" (optional)
-
-    // Constructors
-    public DoctorDepartmentSpecialtyDTO() {}
-
-    public DoctorDepartmentSpecialtyDTO(Integer id, String nom, String prenom, String email, String titre) {
-        this.id = id;
-        this.nom = nom;
-        this.prenom = prenom;
-        this.email = email;
-        this.titre = titre;
-        this.fullName = "Dr. " + prenom + " " + nom;
+    public DoctorDepartmentSpecialtyDTO() {
     }
 
-    // Getters & Setters
+    // Getters & Setters (kolhom)
+    // ... (tzid ila ma kaninch)
+
+
     public Integer getId() {
         return id;
     }
@@ -68,16 +51,14 @@ public class DoctorDepartmentSpecialtyDTO {
 
     public void setNom(String nom) {
         this.nom = nom;
-        updateFullName();
     }
 
-    public String getPrenom() {
-        return prenom;
+    public Boolean getActif() {
+        return actif;
     }
 
-    public void setPrenom(String prenom) {
-        this.prenom = prenom;
-        updateFullName();
+    public void setActif(Boolean actif) {
+        this.actif = actif;
     }
 
     public String getEmail() {
@@ -88,14 +69,6 @@ public class DoctorDepartmentSpecialtyDTO {
         this.email = email;
     }
 
-    public String getTelephone() {
-        return telephone;
-    }
-
-    public void setTelephone(String telephone) {
-        this.telephone = telephone;
-    }
-
     public Long getSpecialtyId() {
         return specialtyId;
     }
@@ -104,20 +77,12 @@ public class DoctorDepartmentSpecialtyDTO {
         this.specialtyId = specialtyId;
     }
 
-    public String getSpecialtyCode() {
-        return specialtyCode;
+    public String getSpecialite() {
+        return specialite;
     }
 
-    public void setSpecialtyCode(String specialtyCode) {
-        this.specialtyCode = specialtyCode;
-    }
-
-    public String getSpecialtyName() {
-        return specialtyName;
-    }
-
-    public void setSpecialtyName(String specialtyName) {
-        this.specialtyName = specialtyName;
+    public void setSpecialite(String specialite) {
+        this.specialite = specialite;
     }
 
     public String getDepartmentCode() {
@@ -134,39 +99,5 @@ public class DoctorDepartmentSpecialtyDTO {
 
     public void setDepartmentName(String departmentName) {
         this.departmentName = departmentName;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getExperience() {
-        return experience;
-    }
-
-    public void setExperience(String experience) {
-        this.experience = experience;
-    }
-
-    // Helper method
-    private void updateFullName() {
-        if (prenom != null && nom != null) {
-            this.fullName = "Dr. " + prenom + " " + nom;
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "DoctorDTO{" +
-                "id=" + id +
-                ", fullName='" + fullName + '\'' +
-                ", titre='" + titre + '\'' +
-                ", specialtyName='" + specialtyName + '\'' +
-                ", departmentName='" + departmentName + '\'' +
-                '}';
     }
 }

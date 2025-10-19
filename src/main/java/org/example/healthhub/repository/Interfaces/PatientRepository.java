@@ -17,5 +17,6 @@ public interface PatientRepository {
     Optional<Patient> findByUsername(String username);
     Optional<Patient> findByEmail(String email);
     //boolean existsByUsername(String username);
+    Patient findById(Integer id) throws Exception;
     boolean existsByEmail(String email);
 }

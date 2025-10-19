@@ -17,19 +17,19 @@
             <h1 class="text-2xl font-bold">Digital Clinic</h1>
         </div>
         <nav class="flex-1 px-4">
-            <a href="dashboard.jsp" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+            <a href="departments" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="doctors.jsp" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-700 mb-2">
+            <a href="doctors" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-700 mb-2">
                 <i class="fas fa-user-md"></i>
                 <span>Doctors</span>
             </a>
-            <a href="patients.jsp" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+            <a href="patients" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
                 <i class="fas fa-users"></i>
                 <span>Patients</span>
             </a>
-            <a href="appointments.jsp" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+            <a href="availabilities" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
                 <i class="fas fa-calendar-check"></i>
                 <span>Appointments</span>
             </a>
@@ -43,6 +43,7 @@
             </a>
         </nav>
     </aside>
+
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-hidden">

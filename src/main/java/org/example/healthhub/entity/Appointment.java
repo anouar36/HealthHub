@@ -1,51 +1,88 @@
 package org.example.healthhub.entity;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "appointments")
 public class Appointment {
-    private String date;
-    private String heure;
-    private String statut;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @Column(name = "date", length = 20)
+    private String date; // "2025-10-21"
+
+    @Column(name = "heure", length = 10)
+    private String heure; // "09:00"
+
+    @Column(name = "statut", length = 20)
+    private String statut; // "CONFIRME", "ANNULE"
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patient_id")
     private Patient patient;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "doctor_id")
     private Doctor docteur;
+
+    @Column(name = "type", length = 50)
     private String type;
 
-    public Appointment() {}
-
-    public Appointment(String date, String heure, String statut, Patient patient, Doctor docteur, String type) {
-        this.date = date;
-        this.heure = heure;
-        this.statut = statut;
-        this.patient = patient;
-        this.docteur = docteur;
-        this.type = type;
+    public Integer getId() {
+        return id;
     }
 
-    public String getDate() { return date; }
-    public void setDate(String date) { this.date = date; }
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
-    public String getHeure() { return heure; }
-    public void setHeure(String heure) { this.heure = heure; }
+    public String getDate() {
+        return date;
+    }
 
-    public String getStatut() { return statut; }
-    public void setStatut(String statut) { this.statut = statut; }
+    public void setDate(String date) {
+        this.date = date;
+    }
 
-    public Patient getPatient() { return patient; }
-    public void setPatient(Patient patient) { this.patient = patient; }
+    public String getHeure() {
+        return heure;
+    }
 
-    public Doctor getDocteur() { return docteur; }
-    public void setDocteur(Doctor docteur) { this.docteur = docteur; }
+    public void setHeure(String heure) {
+        this.heure = heure;
+    }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public String getStatut() {
+        return statut;
+    }
 
-    @Override
-    public String toString() {
-        return "Appointment{" +
-                "date='" + date + '\'' +
-                ", heure='" + heure + '\'' +
-                ", statut='" + statut + '\'' +
-                ", patient=" + patient +
-                ", docteur=" + docteur +
-                ", type='" + type + '\'' +
-                '}';
+    public void setStatut(String statut) {
+        this.statut = statut;
+    }
+
+    public Patient getPatient() {
+        return patient;
+    }
+
+    public void setPatient(Patient patient) {
+        this.patient = patient;
+    }
+
+    public Doctor getDocteur() {
+        return docteur;
+    }
+
+    public void setDocteur(Doctor docteur) {
+        this.docteur = docteur;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

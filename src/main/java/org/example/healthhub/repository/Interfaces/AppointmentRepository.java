@@ -1,4 +1,4 @@
 package org.example.healthhub.repository.Interfaces;
 
-public interface Availability {
+public interface AppointmentRepository {
 }
