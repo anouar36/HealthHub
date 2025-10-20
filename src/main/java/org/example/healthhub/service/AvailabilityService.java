@@ -135,35 +135,33 @@ public class AvailabilityService {
      * Book appointment
      */
     public boolean bookAppointment(Integer doctorId, Integer patientId, String date, String time) {
-        // Check ايلا slot available
+        System.out.println("====================================");
+        System.out.println("AvailabilityService: bookAppointment called");
+        System.out.println("   doctorId=" + doctorId + ", patientId=" + patientId + ", date=" + date + ", time=" + time);
+        System.out.println("====================================");
+
         try {
             LocalDate localDate = LocalDate.parse(date);
             List<String> available = getAvailableSlots(doctorId, localDate);
 
+            System.out.println("   Available slots: " + available);
             if (!available.contains(time)) {
                 System.out.println("❌ Slot not available: " + time);
                 return false;
             }
 
-            // Create appointment (in-memory for now)
-            Appointment appointment = new Appointment();
-            appointment.setDate(date);
-            appointment.setHeure(time);
-            appointment.setStatut("CONFIRME");
-            // appointment.setDocteur(...) // need to fetch doctor
-            // appointment.setPatient(...) // need to fetch patient
+            // Call DAO to persist
+            boolean saved = appointmentDAO.save(doctorId, patientId, date, time, "CONSULTATION");
+            System.out.println("   appointmentDAO.save returned = " + saved);
 
-            appointments.add(appointment);
-            System.out.println("✅ Appointment booked: " + date + " " + time);
-
-            return true;
+            return saved;
 
         } catch (Exception e) {
+            System.err.println("❌ AvailabilityService.bookAppointment exception:");
             e.printStackTrace();
             return false;
         }
     }
-
     /**
      * Initialize default schedules (temporary hardcoded data)
      */

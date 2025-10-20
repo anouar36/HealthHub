@@ -34,145 +34,71 @@ public class AppointmentDAO {
     public boolean save(Integer doctorId, Integer patientId, String date, String heure, String type) {
         EntityManager em = null;
         EntityTransaction tx = null;
-
         try {
-            System.out.println("====================================");
-            System.out.println("💾 AppointmentDAO: Creating appointment");
-            System.out.println("====================================");
-            System.out.println("   Doctor ID: " + doctorId);
-            System.out.println("   Patient ID: " + patientId);
-            System.out.println("   Date: " + date);
-            System.out.println("   Time: " + heure);
-            System.out.println("   Type: " + type);
+            System.out.println("🔴 NEW AppointmentDAO.save() called");
+            System.out.println("   doctorId=" + doctorId + ", patientId=" + patientId + ", date=" + date + ", heure=" + heure);
 
-            // ✅ 1. Create new EntityManager
             em = emf.createEntityManager();
-            System.out.println("✅ Step 1: EntityManager created");
 
-            // ✅ 2. Check slot availability FIRST
-            System.out.println("\n--- Checking Slot Availability ---");
-            if (isSlotBooked(doctorId, date, heure)) {
-                System.err.println("❌ Slot already booked!");
-                System.err.println("====================================");
+            // 1) check slot again in DB (avoid race)
+            String checkJpql = "SELECT COUNT(a) FROM Appointment a WHERE a.docteur.id = :doctorId AND a.date = :date AND a.heure = :heure AND (a.statut IS NULL OR a.statut != 'ANNULE')";
+            TypedQuery<Long> q = em.createQuery(checkJpql, Long.class);
+            q.setParameter("doctorId", doctorId);
+            q.setParameter("date", date);
+            q.setParameter("heure", heure);
+            Long count = q.getSingleResult();
+            System.out.println("   existing bookings for this slot = " + count);
+            if (count > 0) {
+                System.err.println("❌ Slot already booked in DB");
                 return false;
             }
-            System.out.println("✅ Step 2: Slot is available");
 
-            // ✅ 3. Start transaction
-            System.out.println("\n--- Starting Transaction ---");
+            // 2) begin tx
             tx = em.getTransaction();
             tx.begin();
-            System.out.println("✅ Step 3: Transaction started");
-            System.out.println("   Transaction active: " + tx.isActive());
+            System.out.println("   Transaction begun");
 
-            // ✅ 4. Load doctor entity
-            System.out.println("\n--- Loading Doctor ---");
+            // 3) load entities
             Doctor doctor = em.find(Doctor.class, doctorId);
-
-            if (doctor == null) {
-                System.err.println("❌ Doctor not found: ID=" + doctorId);
-                if (tx != null && tx.isActive()) {
-                    tx.rollback();
-                    System.err.println("⚠️ Transaction rolled back");
-                }
-                return false;
-            }
-
-            System.out.println("✅ Step 4: Doctor loaded");
-            System.out.println("   Doctor ID: " + doctor.getId());
-            System.out.println("   Doctor Name: " + (doctor.getUser() != null ? doctor.getUser().getNom() : "N/A"));
-
-            // ✅ 5. Load patient entity
-            System.out.println("\n--- Loading Patient ---");
             Patient patient = em.find(Patient.class, patientId);
-
-            if (patient == null) {
-                System.err.println("❌ Patient not found: ID=" + patientId);
-                if (tx != null && tx.isActive()) {
-                    tx.rollback();
-                    System.err.println("⚠️ Transaction rolled back");
-                }
+            if (doctor == null || patient == null) {
+                System.err.println("❌ Doctor or Patient not found (doctor=" + doctor + ", patient=" + patient + ")");
+                if (tx.isActive()) tx.rollback();
                 return false;
             }
+            System.out.println("   Doctor and Patient loaded");
 
-            System.out.println("✅ Step 5: Patient loaded");
-            System.out.println("   Patient ID: " + patient.getId());
-            System.out.println("   Patient Name: " + patient.getNom());
+            // 4) create Appointment entity and persist
+            Appointment appt = new Appointment();
+            appt.setDocteur(doctor);
+            appt.setPatient(patient);
+            appt.setDate(date);
+            appt.setHeure(heure);
+            appt.setStatut("CONFIRME");
+            appt.setType(type != null ? type : "CONSULTATION");
 
-            // ✅ 6. Create appointment object
-            System.out.println("\n--- Creating Appointment Object ---");
-            Appointment appointment = new Appointment();
-            appointment.setDocteur(doctor);
-            appointment.setPatient(patient);
-            appointment.setDate(date);
-            appointment.setHeure(heure);
-            appointment.setStatut("CONFIRME");
-            appointment.setType(type != null ? type : "CONSULTATION");
+            em.persist(appt);
+            System.out.println("   em.persist() called, appointment entity created (id may be null until flush)");
 
-            System.out.println("✅ Step 6: Appointment object created");
-            System.out.println("   Doctor set: " + (appointment.getDocteur() != null));
-            System.out.println("   Patient set: " + (appointment.getPatient() != null));
-            System.out.println("   Date: " + appointment.getDate());
-            System.out.println("   Time: " + appointment.getHeure());
-            System.out.println("   Status: " + appointment.getStatut());
-            System.out.println("   Type: " + appointment.getType());
-
-            // ✅ 7. Persist to database
-            System.out.println("\n--- Persisting to Database ---");
-            em.persist(appointment);
-            System.out.println("✅ Step 7: em.persist() called");
-
-            // ✅ 8. Flush to execute SQL
             em.flush();
-            System.out.println("✅ Step 8: em.flush() executed (SQL sent to DB)");
+            System.out.println("   em.flush() executed");
 
-            // ✅ 9. Commit transaction
-            System.out.println("\n--- Committing Transaction ---");
             tx.commit();
-            System.out.println("✅ Step 9: Transaction committed");
+            System.out.println("   tx.commit() executed");
 
-            // ✅ 10. Success!
-            System.out.println("\n====================================");
-            System.out.println("✅ ✅ ✅ SAVED TO DATABASE! ✅ ✅ ✅");
-            System.out.println("====================================");
-            System.out.println("   Appointment ID: " + appointment.getId());
-            System.out.println("   Doctor: " + doctorId + " (" + (doctor.getUser() != null ? doctor.getUser().getNom() : "N/A") + ")");
-            System.out.println("   Patient: " + patientId + " (" + patient.getNom() + ")");
-            System.out.println("   Date: " + date);
-            System.out.println("   Time: " + heure);
-            System.out.println("   Status: CONFIRME");
-            System.out.println("====================================\n");
-
+            System.out.println("✅ Appointment saved, id = " + appt.getId());
             return true;
 
         } catch (Exception e) {
-            System.err.println("\n====================================");
-            System.err.println("❌ ❌ ❌ ERROR SAVING! ❌ ❌ ❌");
-            System.err.println("====================================");
-            System.err.println("Error Type: " + e.getClass().getName());
-            System.err.println("Error Message: " + e.getMessage());
-            System.err.println("\nFull Stack Trace:");
+            System.err.println("❌ AppointmentDAO.save error:");
             e.printStackTrace();
-
             if (tx != null && tx.isActive()) {
-                System.err.println("\n⚠️ Rolling back transaction...");
-                try {
-                    tx.rollback();
-                    System.err.println("✅ Rollback successful");
-                } catch (Exception rollbackEx) {
-                    System.err.println("❌ Rollback failed!");
-                    rollbackEx.printStackTrace();
-                }
+                try { tx.rollback(); System.err.println("   rollback done"); } catch (Exception ex) { ex.printStackTrace(); }
             }
-
-            System.err.println("====================================\n");
             return false;
-
         } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-                System.out.println("✅ EntityManager closed\n");
-            }
+            if (em != null && em.isOpen()) em.close();
+            System.out.println("   EntityManager closed");
         }
     }
 
