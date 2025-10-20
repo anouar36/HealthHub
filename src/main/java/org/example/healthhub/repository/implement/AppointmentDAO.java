@@ -1,13 +1,9 @@
 package org.example.healthhub.repository.implement;
 
 import org.example.healthhub.entity.Appointment;
-
-
-
-import jakarta.persistence.*;
 import org.example.healthhub.entity.Doctor;
 import org.example.healthhub.entity.Patient;
-
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +16,8 @@ public class AppointmentDAO {
      * Constructor — Create EMF directly
      */
     public AppointmentDAO() {
-        this.emf = Persistence.createEntityManagerFactory("HealthHubPU");  // ✅ Same name
+        this.emf = Persistence.createEntityManagerFactory("HealthHubPU");
+        System.out.println("✅ AppointmentDAO: EntityManagerFactory created");
     }
 
     /**
@@ -28,157 +25,225 @@ public class AppointmentDAO {
      */
     public AppointmentDAO(EntityManagerFactory emf) {
         this.emf = emf;
+        System.out.println("✅ AppointmentDAO: Using injected EntityManagerFactory");
     }
 
     /**
-     * جيب appointments ديال doctor f تاريخ معين
-     *
-     * @param doctorId معرف الطبيب
-     * @param date التاريخ (format: "2025-10-21")
-     * @return List<Appointment> قائمة المواعيد
-     */
-    public List<Appointment> findByDoctorAndDate(Integer doctorId, String date) {
-        EntityManager em = emf.createEntityManager();
-        try {
-            System.out.println("🔍 AppointmentDAO: Finding appointments for doctor " + doctorId + " on " + date);
-
-            String sql = "SELECT a.date, a.heure, a.statut, a.type " +
-                    "FROM appointments a " +
-                    "WHERE a.doctor_id = :doctorId " +
-                    "AND a.date = :date " +
-                    "AND (a.statut IS NULL OR a.statut != 'ANNULE') " +
-                    "ORDER BY a.heure";
-
-            Query query = em.createNativeQuery(sql);
-            query.setParameter("doctorId", doctorId);
-            query.setParameter("date", date);
-
-            @SuppressWarnings("unchecked")
-            List<Object[]> results = query.getResultList();
-
-            List<Appointment> appointments = new ArrayList<>();
-            for (Object[] row : results) {
-                Appointment appt = new Appointment();
-                appt.setDate((String) row[0]);
-                appt.setHeure((String) row[1]);
-                appt.setStatut((String) row[2]);
-                appt.setType((String) row[3]);
-                appointments.add(appt);
-            }
-
-            System.out.println("✅ AppointmentDAO: Found " + appointments.size() + " appointments");
-            return appointments;
-
-        } catch (Exception e) {
-            System.err.println("❌ AppointmentDAO: Error in findByDoctorAndDate");
-            e.printStackTrace();
-            return Collections.emptyList();
-        } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-            }
-        }
-    }
-
-    /**
-     * تحقق واش slot محجوز
-     *
-     * @param doctorId معرف الطبيب
-     * @param date التاريخ
-     * @param heure الوقت ("09:00")
-     * @return true ايلا محجوز
-     */
-    public boolean isSlotBooked(Integer doctorId, String date, String heure) {
-        EntityManager em = emf.createEntityManager();
-        try {
-            System.out.println("🔍 AppointmentDAO: Checking slot " + heure + " on " + date);
-
-            String sql = "SELECT COUNT(*) FROM appointments " +
-                    "WHERE doctor_id = :doctorId " +
-                    "AND date = :date " +
-                    "AND heure = :heure " +
-                    "AND (statut IS NULL OR statut != 'ANNULE')";
-
-            Query query = em.createNativeQuery(sql);
-            query.setParameter("doctorId", doctorId);
-            query.setParameter("date", date);
-            query.setParameter("heure", heure);
-
-            Number count = (Number) query.getSingleResult();
-            boolean isBooked = count.longValue() > 0;
-
-            System.out.println(isBooked ? "🚫 Slot BOOKED" : "✅ Slot AVAILABLE");
-            return isBooked;
-
-        } catch (Exception e) {
-            System.err.println("❌ AppointmentDAO: Error checking slot");
-            e.printStackTrace();
-            return false;
-        } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-            }
-        }
-    }
-
-    /**
-     * Create appointment جديد
-     *
-     * @param doctorId معرف الطبيب
-     * @param patientId معرف المريض
-     * @param date التاريخ
-     * @param heure الوقت
-     * @param type نوع الموعد
-     * @return true ايلا نجح
+     * ✅ FIXED: Create appointment جديد
      */
     public boolean save(Integer doctorId, Integer patientId, String date, String heure, String type) {
-        EntityManager em = emf.createEntityManager();
+        EntityManager em = null;
         EntityTransaction tx = null;
-        try {
-            System.out.println("💾 AppointmentDAO: Creating appointment");
-            System.out.println("   Doctor: " + doctorId + ", Patient: " + patientId);
-            System.out.println("   Date: " + date + ", Time: " + heure);
 
-            // ✅ تحقق أولاً واش slot available
+        try {
+            System.out.println("====================================");
+            System.out.println("💾 AppointmentDAO: Creating appointment");
+            System.out.println("====================================");
+            System.out.println("   Doctor ID: " + doctorId);
+            System.out.println("   Patient ID: " + patientId);
+            System.out.println("   Date: " + date);
+            System.out.println("   Time: " + heure);
+            System.out.println("   Type: " + type);
+
+            // ✅ 1. Create new EntityManager
+            em = emf.createEntityManager();
+            System.out.println("✅ Step 1: EntityManager created");
+
+            // ✅ 2. Check slot availability FIRST
+            System.out.println("\n--- Checking Slot Availability ---");
             if (isSlotBooked(doctorId, date, heure)) {
-                System.err.println("❌ AppointmentDAO: Slot already booked!");
+                System.err.println("❌ Slot already booked!");
+                System.err.println("====================================");
+                return false;
+            }
+            System.out.println("✅ Step 2: Slot is available");
+
+            // ✅ 3. Start transaction
+            System.out.println("\n--- Starting Transaction ---");
+            tx = em.getTransaction();
+            tx.begin();
+            System.out.println("✅ Step 3: Transaction started");
+            System.out.println("   Transaction active: " + tx.isActive());
+
+            // ✅ 4. Load doctor entity
+            System.out.println("\n--- Loading Doctor ---");
+            Doctor doctor = em.find(Doctor.class, doctorId);
+
+            if (doctor == null) {
+                System.err.println("❌ Doctor not found: ID=" + doctorId);
+                if (tx != null && tx.isActive()) {
+                    tx.rollback();
+                    System.err.println("⚠️ Transaction rolled back");
+                }
                 return false;
             }
 
-            tx = em.getTransaction();
-            tx.begin();
+            System.out.println("✅ Step 4: Doctor loaded");
+            System.out.println("   Doctor ID: " + doctor.getId());
+            System.out.println("   Doctor Name: " + (doctor.getUser() != null ? doctor.getUser().getNom() : "N/A"));
 
-            String sql = "INSERT INTO appointments (doctor_id, patient_id, date, heure, statut, type) " +
-                    "VALUES (:doctorId, :patientId, :date, :heure, 'CONFIRME', :type)";
+            // ✅ 5. Load patient entity
+            System.out.println("\n--- Loading Patient ---");
+            Patient patient = em.find(Patient.class, patientId);
 
-            Query query = em.createNativeQuery(sql);
+            if (patient == null) {
+                System.err.println("❌ Patient not found: ID=" + patientId);
+                if (tx != null && tx.isActive()) {
+                    tx.rollback();
+                    System.err.println("⚠️ Transaction rolled back");
+                }
+                return false;
+            }
+
+            System.out.println("✅ Step 5: Patient loaded");
+            System.out.println("   Patient ID: " + patient.getId());
+            System.out.println("   Patient Name: " + patient.getNom());
+
+            // ✅ 6. Create appointment object
+            System.out.println("\n--- Creating Appointment Object ---");
             Appointment appointment = new Appointment();
-            Doctor doctor = new Doctor();
-            doctor.setId(doctorId);
-            Patient patient = new Patient();
-            patient.setId(patientId);
-
             appointment.setDocteur(doctor);
             appointment.setPatient(patient);
             appointment.setDate(date);
             appointment.setHeure(heure);
             appointment.setStatut("CONFIRME");
             appointment.setType(type != null ? type : "CONSULTATION");
+
+            System.out.println("✅ Step 6: Appointment object created");
+            System.out.println("   Doctor set: " + (appointment.getDocteur() != null));
+            System.out.println("   Patient set: " + (appointment.getPatient() != null));
+            System.out.println("   Date: " + appointment.getDate());
+            System.out.println("   Time: " + appointment.getHeure());
+            System.out.println("   Status: " + appointment.getStatut());
+            System.out.println("   Type: " + appointment.getType());
+
+            // ✅ 7. Persist to database
+            System.out.println("\n--- Persisting to Database ---");
             em.persist(appointment);
+            System.out.println("✅ Step 7: em.persist() called");
 
-            int inserted = query.executeUpdate();
+            // ✅ 8. Flush to execute SQL
+            em.flush();
+            System.out.println("✅ Step 8: em.flush() executed (SQL sent to DB)");
+
+            // ✅ 9. Commit transaction
+            System.out.println("\n--- Committing Transaction ---");
             tx.commit();
+            System.out.println("✅ Step 9: Transaction committed");
 
-            System.out.println("✅ AppointmentDAO: Inserted " + inserted + " appointment");
-            return inserted > 0;
+            // ✅ 10. Success!
+            System.out.println("\n====================================");
+            System.out.println("✅ ✅ ✅ SAVED TO DATABASE! ✅ ✅ ✅");
+            System.out.println("====================================");
+            System.out.println("   Appointment ID: " + appointment.getId());
+            System.out.println("   Doctor: " + doctorId + " (" + (doctor.getUser() != null ? doctor.getUser().getNom() : "N/A") + ")");
+            System.out.println("   Patient: " + patientId + " (" + patient.getNom() + ")");
+            System.out.println("   Date: " + date);
+            System.out.println("   Time: " + heure);
+            System.out.println("   Status: CONFIRME");
+            System.out.println("====================================\n");
+
+            return true;
 
         } catch (Exception e) {
+            System.err.println("\n====================================");
+            System.err.println("❌ ❌ ❌ ERROR SAVING! ❌ ❌ ❌");
+            System.err.println("====================================");
+            System.err.println("Error Type: " + e.getClass().getName());
+            System.err.println("Error Message: " + e.getMessage());
+            System.err.println("\nFull Stack Trace:");
+            e.printStackTrace();
+
             if (tx != null && tx.isActive()) {
-                tx.rollback();
+                System.err.println("\n⚠️ Rolling back transaction...");
+                try {
+                    tx.rollback();
+                    System.err.println("✅ Rollback successful");
+                } catch (Exception rollbackEx) {
+                    System.err.println("❌ Rollback failed!");
+                    rollbackEx.printStackTrace();
+                }
             }
-            System.err.println("❌ AppointmentDAO: Error creating appointment");
+
+            System.err.println("====================================\n");
+            return false;
+
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+                System.out.println("✅ EntityManager closed\n");
+            }
+        }
+    }
+
+    /**
+     * تحقق واش slot محجوز
+     */
+    public boolean isSlotBooked(Integer doctorId, String date, String heure) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            System.out.println("🔍 Checking slot: Doctor=" + doctorId + ", Date=" + date + ", Time=" + heure);
+
+            String jpql = "SELECT COUNT(a) FROM Appointment a " +
+                    "WHERE a.docteur.id = :doctorId " +
+                    "AND TRIM(a.date) = TRIM(:date) " +
+                    "AND TRIM(a.heure) = TRIM(:heure) " +
+                    "AND (a.statut IS NULL OR a.statut != 'ANNULE')";
+
+            TypedQuery<Long> query = em.createQuery(jpql, Long.class);
+            query.setParameter("doctorId", doctorId);
+            query.setParameter("date", date);
+            query.setParameter("heure", heure);
+
+            Long count = query.getSingleResult();
+            boolean isBooked = count > 0;
+
+            System.out.println("   Result: " + (isBooked ? "🚫 BOOKED (" + count + " appointments)" : "✅ AVAILABLE"));
+
+            return isBooked;
+
+        } catch (Exception e) {
+            System.err.println("❌ Error checking slot");
             e.printStackTrace();
             return false;
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
+        }
+    }
+
+    /**
+     * جيب appointments ديال doctor f تاريخ معين
+     */
+    public List<Appointment> findByDoctorAndDate(Integer doctorId, String date) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            System.out.println("🔍 Finding appointments: Doctor=" + doctorId + ", Date=" + date);
+
+            String jpql = "SELECT a FROM Appointment a " +
+                    "WHERE a.docteur.id = :doctorId " +
+                    "AND a.date = :date " +
+                    "AND (a.statut IS NULL OR a.statut != 'ANNULE') " +
+                    "ORDER BY a.heure";
+
+            TypedQuery<Appointment> query = em.createQuery(jpql, Appointment.class);
+            query.setParameter("doctorId", doctorId);
+            query.setParameter("date", date);
+
+            List<Appointment> appointments = query.getResultList();
+
+            System.out.println("✅ Found " + appointments.size() + " appointments");
+            for (Appointment a : appointments) {
+                System.out.println("   - " + a.getDate() + " " + a.getHeure() + " (" + a.getStatut() + ")");
+            }
+
+            return appointments;
+
+        } catch (Exception e) {
+            System.err.println("❌ Error finding appointments");
+            e.printStackTrace();
+            return new ArrayList<>();
         } finally {
             if (em != null && em.isOpen()) {
                 em.close();
@@ -188,90 +253,28 @@ public class AppointmentDAO {
 
     /**
      * جيب appointments ديال patient
-     *
-     * @param patientId معرف المريض
-     * @return List<Appointment> قائمة المواعيد
      */
     public List<Appointment> findByPatient(Integer patientId) {
         EntityManager em = emf.createEntityManager();
         try {
-            System.out.println("🔍 AppointmentDAO: Finding appointments for patient " + patientId);
+            System.out.println("🔍 Finding appointments for patient: " + patientId);
 
-            String sql = "SELECT a.date, a.heure, a.statut, a.type " +
-                    "FROM appointments a " +
-                    "WHERE a.patient_id = :patientId " +
+            String jpql = "SELECT a FROM Appointment a " +
+                    "WHERE a.patient.id = :patientId " +
                     "ORDER BY a.date DESC, a.heure DESC";
 
-            Query query = em.createNativeQuery(sql);
-            Patient patient = new Patient();
-            patient.setId(patientId);
-            em.persist(patient);
+            TypedQuery<Appointment> query = em.createQuery(jpql, Appointment.class);
+            query.setParameter("patientId", patientId);
 
-            @SuppressWarnings("unchecked")
-            List<Object[]> results = query.getResultList();
+            List<Appointment> appointments = query.getResultList();
 
-            List<Appointment> appointments = new ArrayList<>();
-            for (Object[] row : results) {
-                Appointment appt = new Appointment();
-                appt.setDate((String) row[0]);
-                appt.setHeure((String) row[1]);
-                appt.setStatut((String) row[2]);
-                appt.setType((String) row[3]);
-                appointments.add(appt);
-            }
-
-            System.out.println("✅ AppointmentDAO: Found " + appointments.size() + " patient appointments");
+            System.out.println("✅ Found " + appointments.size() + " patient appointments");
             return appointments;
 
         } catch (Exception e) {
-            System.err.println("❌ AppointmentDAO: Error in findByPatient");
+            System.err.println("❌ Error finding patient appointments");
             e.printStackTrace();
             return Collections.emptyList();
-        } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-            }
-        }
-    }
-
-    /**
-     * Cancel appointment
-     *
-     * @param doctorId معرف الطبيب
-     * @param date التاريخ
-     * @param heure الوقت
-     */
-    public void cancel(Integer doctorId, String date, String heure) {
-        EntityManager em = emf.createEntityManager();
-        EntityTransaction tx = null;
-        try {
-            System.out.println("❌ AppointmentDAO: Cancelling appointment");
-            System.out.println("   Doctor: " + doctorId + ", Date: " + date + ", Time: " + heure);
-
-            tx = em.getTransaction();
-            tx.begin();
-
-            String sql = "UPDATE appointments SET statut = 'ANNULE' " +
-                    "WHERE doctor_id = :doctorId " +
-                    "AND date = :date " +
-                    "AND heure = :heure";
-
-            Query query = em.createNativeQuery(sql);
-            query.setParameter("doctorId", doctorId);
-            query.setParameter("date", date);
-            query.setParameter("heure", heure);
-
-            int updated = query.executeUpdate();
-            tx.commit();
-
-            System.out.println("✅ AppointmentDAO: Cancelled " + updated + " appointment(s)");
-
-        } catch (Exception e) {
-            if (tx != null && tx.isActive()) {
-                tx.rollback();
-            }
-            System.err.println("❌ AppointmentDAO: Error cancelling appointment");
-            e.printStackTrace();
         } finally {
             if (em != null && em.isOpen()) {
                 em.close();
@@ -285,31 +288,24 @@ public class AppointmentDAO {
     public List<Appointment> findByDoctor(Integer doctorId) {
         EntityManager em = emf.createEntityManager();
         try {
-            System.out.println("🔍 AppointmentDAO: Finding all appointments for doctor " + doctorId);
+            System.out.println("🔍 Finding all appointments for doctor: " + doctorId);
 
-            String sql = "SELECT date, heure, statut, type FROM appointments " +
-                    "WHERE doctor_id = :doctorId " +
-                    "ORDER BY date DESC, heure DESC";
+            String jpql = "SELECT a FROM Appointment a " +
+                    "WHERE a.docteur.id = :doctorId " +
+                    "ORDER BY a.date DESC, a.heure DESC";
 
-            Query query = em.createNativeQuery(sql);
+            TypedQuery<Appointment> query = em.createQuery(jpql, Appointment.class);
             query.setParameter("doctorId", doctorId);
 
-            @SuppressWarnings("unchecked")
-            List<Object[]> results = query.getResultList();
+            List<Appointment> appointments = query.getResultList();
 
-            List<Appointment> appointments = new ArrayList<>();
-            for (Object[] row : results) {
-                Appointment appt = new Appointment();
-                appt.setDate((String) row[0]);
-                appt.setHeure((String) row[1]);
-                appt.setStatut((String) row[2]);
-                appt.setType((String) row[3]);
-                appointments.add(appt);
-            }
-
-            System.out.println("✅ AppointmentDAO: Found " + appointments.size() + " doctor appointments");
+            System.out.println("✅ Found " + appointments.size() + " doctor appointments");
             return appointments;
 
+        } catch (Exception e) {
+            System.err.println("❌ Error finding doctor appointments");
+            e.printStackTrace();
+            return Collections.emptyList();
         } finally {
             if (em != null && em.isOpen()) {
                 em.close();
@@ -318,11 +314,52 @@ public class AppointmentDAO {
     }
 
     /**
-     * Close EntityManagerFactory (call عند shutdown)
+     * Cancel appointment
+     */
+    public void cancel(Integer doctorId, String date, String heure) {
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = null;
+        try {
+            System.out.println("❌ Cancelling appointment: Doctor=" + doctorId + ", Date=" + date + ", Time=" + heure);
+
+            tx = em.getTransaction();
+            tx.begin();
+
+            String jpql = "UPDATE Appointment a SET a.statut = 'ANNULE' " +
+                    "WHERE a.docteur.id = :doctorId " +
+                    "AND a.date = :date " +
+                    "AND a.heure = :heure";
+
+            Query query = em.createQuery(jpql);
+            query.setParameter("doctorId", doctorId);
+            query.setParameter("date", date);
+            query.setParameter("heure", heure);
+
+            int updated = query.executeUpdate();
+            tx.commit();
+
+            System.out.println("✅ Cancelled " + updated + " appointment(s)");
+
+        } catch (Exception e) {
+            if (tx != null && tx.isActive()) {
+                tx.rollback();
+            }
+            System.err.println("❌ Error cancelling appointment");
+            e.printStackTrace();
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
+        }
+    }
+
+    /**
+     * Close EntityManagerFactory
      */
     public void close() {
         if (emf != null && emf.isOpen()) {
             emf.close();
+            System.out.println("✅ AppointmentDAO: EntityManagerFactory closed");
         }
     }
 }

@@ -19,11 +19,11 @@
       <h1 class="text-2xl font-bold">Digital Clinic</h1>
     </div>
     <nav class="flex-1 px-4">
-      <a href="departments" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+      <a href="departments" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-700 mb-2">
         <i class="fas fa-home"></i>
         <span>Dashboard</span>
       </a>
-      <a href="doctors" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-700 mb-2">
+      <a href="doctors" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
         <i class="fas fa-user-md"></i>
         <span>Doctors</span>
       </a>
@@ -39,7 +39,7 @@
         <i class="fas fa-chart-bar"></i>
         <span>Reports</span>
       </a>
-      <a href="settings.jsp" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
+      <a href="settings" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
         <i class="fas fa-cog"></i>
         <span>Settings</span>
       </a>
@@ -140,7 +140,6 @@
         </table>
       </div>
     </div>
-
   </main>
 </div>
 </body>

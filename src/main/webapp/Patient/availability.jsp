@@ -323,31 +323,185 @@
                                         <i class="fas fa-calendar-times text-gray-300 text-5xl mb-4"></i>
                                         <p class="text-gray-500">No available slots</p>
                                     </div>
-                                </c:when>
-                                <c:otherwise>
-                                    <form method="POST" action="${pageContext.request.contextPath}/user/book-appointment">
+                                </c:when>                                <c:otherwise>
+                                    <form method="POST" id="bookingForm" action="${pageContext.request.contextPath}/user/book-appointment">
                                         <input type="hidden" name="deptCode" value="${param.deptCode}" />
                                         <input type="hidden" name="doctorId" value="${param.doctorId}" />
                                         <input type="hidden" name="date" value="${param.date}" />
 
-                                        <!-- ✅ Admin: Patient Selector -->
+                                        <!-- ✅ Admin: Patient Booking Options -->
                                         <c:if test="${sessionScope.role == 'ADMIN' || sessionScope.role == 'STAFF'}">
-                                            <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                    <i class="fas fa-user-injured text-blue-600 mr-2"></i>
-                                                    Select Patient (Admin Mode)
-                                                </label>
-                                                <select name="patientId" class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" required>
-                                                    <option value="">Choose patient...</option>
-                                                    <c:forEach var="pt" items="${allPatients}">
-                                                        <option value="${pt.id}">${pt.nom} - ${pt.email}</option>
-                                                    </c:forEach>
-                                                </select>
-                                                <p class="text-xs text-gray-600 mt-2">
-                                                    <i class="fas fa-info-circle mr-1"></i>
-                                                    Leave empty to book for yourself
-                                                </p>
+                                            <div class="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-6 shadow-sm">
+                                                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                                                    <i class="fas fa-user-md text-blue-600 mr-3"></i>
+                                                    Patient Information (Admin Mode)
+                                                </h3>
+                                                
+                                                <!-- ✅ Toggle Buttons -->
+                                                <div class="flex gap-3 mb-4">
+                                                    <button type="button" onclick="switchMode('existing')" 
+                                                            id="btnExisting"
+                                                            class="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                                                        <i class="fas fa-users mr-2"></i>Existing Patient
+                                                    </button>
+                                                    <button type="button" onclick="switchMode('new')" 
+                                                            id="btnNew"
+                                                            class="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition">
+                                                        <i class="fas fa-user-plus mr-2"></i>Walk-in / New Patient
+                                                    </button>
+                                                </div>
+
+                                                <!-- ✅ Existing Patient Selector -->
+                                                <div id="existingPatientForm" class="space-y-3">
+                                                    <label class="block text-sm font-semibold text-gray-700">
+                                                        <i class="fas fa-user-injured text-blue-600 mr-2"></i>
+                                                        Select Patient
+                                                    </label>
+                                                    <select name="patientId" id="patientSelect" 
+                                                            class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                                                        <option value="">-- Choose existing patient --</option>
+                                                        <c:forEach var="pt" items="${allPatients}">
+                                                            <option value="${pt.id}">${pt.nom} (${pt.cin}) - ${pt.email}</option>
+                                                        </c:forEach>
+                                                    </select>
+                                                    <p class="text-xs text-gray-600 mt-2">
+                                                        <i class="fas fa-info-circle mr-1"></i>
+                                                        Select from registered patients
+                                                    </p>
+                                                </div>
+
+                                                <!-- ✅ New Patient Form (Walk-in) -->
+                                                <div id="newPatientForm" class="space-y-4" style="display:none;">
+                                                    <p class="text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                                        <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                                                        <strong>Walk-in Patient:</strong> Fill in the patient details below. If CIN exists, we'll use existing record.
+                                                    </p>
+                                                    
+                                                    <div class="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                                                Full Name <span class="text-red-500">*</span>
+                                                            </label>
+                                                            <input type="text" name="nom" id="nom" 
+                                                                   class="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500"
+                                                                   placeholder="e.g., Mohammed Ali">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                                                CIN <span class="text-red-500">*</span>
+                                                            </label>
+                                                            <input type="text" name="cin" id="cin" 
+                                                                   class="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500"
+                                                                   placeholder="e.g., AB123456">
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                                                Telephone <span class="text-red-500">*</span>
+                                                            </label>
+                                                            <input type="tel" name="telephone" id="telephone" 
+                                                                   class="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500"
+                                                                   placeholder="e.g., 0612345678">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                                                Email
+                                                            </label>
+                                                            <input type="email" name="email" id="email" 
+                                                                   class="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500"
+                                                                   placeholder="patient@example.com">
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="grid grid-cols-3 gap-4">
+                                                        <div>
+                                                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                                                Date of Birth
+                                                            </label>
+                                                            <input type="date" name="naissance" id="naissance" 
+                                                                   class="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                                                Gender
+                                                            </label>
+                                                            <select name="sexe" id="sexe" 
+                                                                    class="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500">
+                                                                <option value="M">Male</option>
+                                                                <option value="F">Female</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                                                Blood Type
+                                                            </label>
+                                                            <select name="sang" id="sang" 
+                                                                    class="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500">
+                                                                <option value="">Unknown</option>
+                                                                <option value="A+">A+</option>
+                                                                <option value="A-">A-</option>
+                                                                <option value="B+">B+</option>
+                                                                <option value="B-">B-</option>
+                                                                <option value="O+">O+</option>
+                                                                <option value="O-">O-</option>
+                                                                <option value="AB+">AB+</option>
+                                                                <option value="AB-">AB-</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div>
+                                                        <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                                            Address
+                                                        </label>
+                                                        <input type="text" name="adresse" id="adresse" 
+                                                               class="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500"
+                                                               placeholder="e.g., 123 Rue Mohammed V, Casablanca">
+                                                    </div>
+                                                </div>
                                             </div>
+
+                                            <script>
+                                                function switchMode(mode) {
+                                                    const form = document.getElementById('bookingForm');
+                                                    const existingDiv = document.getElementById('existingPatientForm');
+                                                    const newDiv = document.getElementById('newPatientForm');
+                                                    const btnExisting = document.getElementById('btnExisting');
+                                                    const btnNew = document.getElementById('btnNew');
+                                                    const patientSelect = document.getElementById('patientSelect');
+                                                    
+                                                    if (mode === 'existing') {
+                                                        // Switch to existing patient mode
+                                                        form.action = '${pageContext.request.contextPath}/user/book-appointment';
+                                                        existingDiv.style.display = 'block';
+                                                        newDiv.style.display = 'none';
+                                                        btnExisting.className = 'flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold';
+                                                        btnNew.className = 'flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition';
+                                                        patientSelect.required = false;
+                                                        
+                                                        // Disable new patient fields
+                                                        document.getElementById('nom').required = false;
+                                                        document.getElementById('cin').required = false;
+                                                        document.getElementById('telephone').required = false;
+                                                    } else {
+                                                        // Switch to new patient mode (walk-in)
+                                                        form.action = '${pageContext.request.contextPath}/user/book-walk-in';
+                                                        existingDiv.style.display = 'none';
+                                                        newDiv.style.display = 'block';
+                                                        btnNew.className = 'flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold';
+                                                        btnExisting.className = 'flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition';
+                                                        patientSelect.required = false;
+                                                        patientSelect.value = ''; // Clear selection
+                                                        
+                                                        // Enable new patient fields
+                                                        document.getElementById('nom').required = true;
+                                                        document.getElementById('cin').required = true;
+                                                        document.getElementById('telephone').required = true;
+                                                    }
+                                                }
+                                            </script>
                                         </c:if>
 
                                         <!-- Morning Slots -->

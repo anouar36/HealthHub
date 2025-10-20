@@ -3,6 +3,8 @@ package org.example.healthhub.service;
 import org.example.healthhub.entity.Availability;
 import org.example.healthhub.entity.Appointment;
 import org.example.healthhub.entity.Doctor;
+import org.example.healthhub.repository.implement.AppointmentDAO;
+import org.example.healthhub.repository.implement.AvailabilityDAO;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -14,6 +16,8 @@ import java.util.stream.Collectors;
 public class AvailabilityService {
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private final AppointmentDAO appointmentDAO = new AppointmentDAO();
+    private final AvailabilityDAO availabilityDAO = new AvailabilityDAO();
 
     // ✅ Temporary: In-memory storage
     private Map<Integer, List<Availability>> doctorAvailabilities = new HashMap<>();
@@ -30,19 +34,19 @@ public class AvailabilityService {
     public List<String> getAvailableSlots(Integer doctorId, LocalDate date) {
         System.out.println("🔍 Getting slots for doctor " + doctorId + " on " + date);
 
-        // 1. جيب day of week
-        DayOfWeek dayOfWeek = date.getDayOfWeek();
-        String dayName = getDayNameInFrench(dayOfWeek); // "Lundi", "Mardi"...
+        // 1. Get day name
+        String dayName = getDayNameInFrench(date.getDayOfWeek());
+        System.out.println("   Day: " + dayName);
 
-        // 2. جيب availabilities ديال doctor f had النهار
-        List<Availability> availabilities = getAvailabilitiesForDay(doctorId, dayName);
+        // 2. Get availabilities from DB
+        List<Availability> availabilities = availabilityDAO.findByDoctorAndJour(doctorId, dayName);
 
         if (availabilities.isEmpty()) {
-            System.out.println("⚠️ No availability for " + dayName);
+            System.out.println("⚠️ No availabilities for " + dayName);
             return new ArrayList<>();
         }
 
-        // 3. Generate كل slots ممكنة
+        // 3. Generate all possible slots
         List<String> allSlots = new ArrayList<>();
         for (Availability avail : availabilities) {
             if ("DISPONIBLE".equals(avail.getStatut())) {
@@ -53,14 +57,27 @@ public class AvailabilityService {
 
         System.out.println("📊 Total possible slots: " + allSlots.size());
 
-        // 4. جيب booked appointments
-        List<String> bookedSlots = getBookedSlotsForDate(doctorId, date);
-        System.out.println("🚫 Booked slots: " + bookedSlots.size());
+        // 4. Get booked appointments (FRESH DATA)
+        String dateStr = date.toString();
+        List<Appointment> booked = appointmentDAO.findByDoctorAndDate(doctorId, dateStr);
 
-        // 5. Filter available
-        List<String> availableSlots = allSlots.stream()
-                .filter(slot -> !bookedSlots.contains(slot))
-                .collect(Collectors.toList());
+        List<String> bookedTimes = new ArrayList<>();
+        for (Appointment appt : booked) {
+            bookedTimes.add(appt.getHeure());
+        }
+
+        System.out.println("🚫 Booked slots: " + bookedTimes.size());
+        if (!bookedTimes.isEmpty()) {
+            System.out.println("   Times: " + bookedTimes);
+        }
+
+        // 5. Filter available (exclude booked)
+        List<String> availableSlots = new ArrayList<>();
+        for (String slot : allSlots) {
+            if (!bookedTimes.contains(slot)) {
+                availableSlots.add(slot);
+            }
+        }
 
         System.out.println("✅ Available slots: " + availableSlots.size());
 

@@ -38,12 +38,12 @@ public class AvailabilityDAO {
             System.out.println("🔍 AvailabilityDAO: Finding availabilities for doctor " + doctorId + " on " + jour);
 
             // ✅ استعمل positional parameters (?1, ?2) بدل named parameters
-            String sql = "SELECT jour, heure_debut, heure_fin, statut, validite " +
-                    "FROM availabilities " +
-                    "WHERE doctor_id = ?1 " +
-                    "AND jour = ?2 " +
-                    "AND (statut IS NULL OR statut = 'DISPONIBLE') " +
-                    "ORDER BY heure_debut";
+                    String sql = "SELECT jour, heure_debut, heure_fin, statut, validite " +
+                            "FROM availabilities " +
+                            "WHERE doctor_id = ?1 " +
+                            "AND jour= ?2 " +
+                            "AND (statut IS NULL OR statut = 'DISPONIBLE') " +
+                            "ORDER BY heure_debut";
 
             Query query = em.createNativeQuery(sql);
             query.setParameter(1, doctorId);  // ✅ positional parameter

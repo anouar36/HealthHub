@@ -32,7 +32,7 @@
         <i class="fas fa-home"></i>
         <span>Dashboard</span>
       </a>
-      <a href="doctors" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-700 mb-2">
+      <a href="doctors" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors mb-2">
         <i class="fas fa-user-md"></i>
         <span>Doctors</span>
       </a>

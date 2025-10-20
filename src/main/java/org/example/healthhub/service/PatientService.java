@@ -29,6 +29,41 @@ public class PatientService {
     /**
      * Get all patients
      */
+    /**
+     * Get patient by username (returns null if not found)
+     */
+    public PatientDTO getPatientByUsernameSimple(String username) {
+        System.out.println("🔍 PatientService: Getting patient by username: " + username);
+
+        try {
+            Patient patient = patientDAO.findByUsernameSimple(username);
+
+            if (patient == null) {
+                System.out.println("⚠️ PatientService: Patient not found for username: " + username);
+                return null;
+            }
+
+            PatientDTO dto = new PatientDTO();
+            dto.setId(patient.getId());
+            dto.setNom(patient.getNom());
+            dto.setEmail(patient.getEmail());
+            dto.setCIN(patient.getCIN());
+            dto.setTelephone(patient.getTelephone());
+            dto.setAdresse(patient.getAdresse());
+            dto.setSexe(patient.getSexe());
+            dto.setNaissance(patient.getNaissance());
+            dto.setSang(patient.getSang());
+            dto.setActif(patient.getActif());
+
+            System.out.println("✅ PatientService: Found patient ID=" + dto.getId() + ", Nom=" + dto.getNom());
+            return dto;
+
+        } catch (Exception e) {
+            System.err.println("❌ PatientService: Error getting patient");
+            e.printStackTrace();
+            return null;
+        }
+    }
     public List<PatientDTO> getAllPatients() {
         try {
             List<Patient> patients = patientDAO.findAll();

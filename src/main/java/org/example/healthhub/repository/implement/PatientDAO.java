@@ -24,6 +24,45 @@ public class PatientDAO implements PatientRepository {
         this.sessionFactory = new Configuration().configure().buildSessionFactory();
     }
 
+    /**
+     * Find patient by username (returns null if not found)
+     */
+    public Patient findByUsernameSimple(String username) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            System.out.println("🔍 PatientDAO: Finding patient by username: " + username);
+
+            String jpql = "SELECT p FROM Patient p " +
+                    "WHERE p.email = :username " +
+                    "AND p.actif = true";
+
+            TypedQuery<Patient> query = em.createQuery(jpql, Patient.class);
+            query.setParameter("username", username);
+            query.setMaxResults(1);
+
+            List<Patient> results = query.getResultList();
+
+            if (results.isEmpty()) {
+                System.out.println("⚠️ PatientDAO: No patient found for: " + username);
+                return null;
+            }
+
+            Patient patient = results.get(0);
+            System.out.println("✅ PatientDAO: Found patient ID=" + patient.getId() + ", Nom=" + patient.getNom());
+
+            return patient;
+
+        } catch (Exception e) {
+            System.err.println("❌ PatientDAO: Error in findByUsernameSimple");
+            e.printStackTrace();
+            return null;
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
+        }
+    }
+
     @Override
     public Patient save(Patient patient) {
         Transaction transaction = null;

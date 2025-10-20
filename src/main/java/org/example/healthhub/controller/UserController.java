@@ -382,7 +382,6 @@
             if ("/book-appointment".equals(pathInfo)){
                 System.out.println("====================================");
                 System.out.println("📝 POST /book-appointment");
-                System.out.println("User: anouar36");
                 System.out.println("====================================");
 
                 try {
@@ -398,29 +397,35 @@
                     System.out.println("   Date: " + date);
                     System.out.println("   Time: " + time);
 
-                    // ✅ Validate parameters
+                    // ✅ Validate required parameters
                     if (doctorIdStr == null || date == null || time == null) {
                         System.err.println("❌ Missing required parameters");
                         resp.sendRedirect(req.getContextPath() +
-                                "/user/availabilities?error=missing-params&step=3&doctorId=" + doctorIdStr + "&date=" + date);
+                                "/user/availabilities?error=missing-params");
                         return;
                     }
 
                     Integer doctorId = Integer.parseInt(doctorIdStr);
 
-                    // ✅ Get current patient (anouar36)
-                    String username = "anouar36"; // current user
-                    Optional<PatientDTO> patientOpt = patientService.getPatientByUsername(username);
+                    // ✅ Get current logged-in patient (NO OPTIONAL)
+                    String currentUsername = (String) req.getSession().getAttribute("username");
 
-                    if (!patientOpt.isPresent()) {
-                        System.err.println("❌ Patient not found: " + username);
+                    if (currentUsername == null) {
+                        System.err.println("❌ User not logged in");
+                        resp.sendRedirect(req.getContextPath() + "/login.jsp");
+                        return;
+                    }
+
+                    PatientDTO patient = patientService.getPatientByUsernameSimple(currentUsername);
+
+                    if (patient == null) {
+                        System.err.println("❌ Patient not found: " + currentUsername);
                         resp.sendRedirect(req.getContextPath() +
                                 "/user/availabilities?error=patient-not-found");
                         return;
                     }
 
-                    PatientDTO patient = patientOpt.get();
-                    System.out.println("✅ Patient found: " + patient.getNom() + " (ID: " + patient.getId() + ")");
+                    System.out.println("✅ Patient: " + patient.getNom() + " (ID: " + patient.getId() + ")");
 
                     // ✅ Book appointment
                     boolean success = availabilityService.bookAppointment(
@@ -431,28 +436,37 @@
                     );
 
                     if (success) {
-                        System.out.println("✅ ✅ ✅ APPOINTMENT BOOKED SUCCESSFULLY! ✅ ✅ ✅");
+                        System.out.println("✅ ✅ ✅ APPOINTMENT BOOKED! ✅ ✅ ✅");
                         System.out.println("   Doctor: " + doctorId);
-                        System.out.println("   Patient: " + patient.getNom());
+                        System.out.println("   Patient: " + patient.getNom() + " (ID: " + patient.getId() + ")");
                         System.out.println("   Date: " + date);
                         System.out.println("   Time: " + time);
 
-                        // Redirect to success page with confirmation
                         resp.sendRedirect(req.getContextPath() +
                                 "/user/availabilities?success=true&date=" + date + "&time=" + time);
 
                     } else {
-                        System.err.println("❌ Failed to book appointment (slot already taken)");
+                        System.err.println("❌ Booking failed (slot already taken)");
                         resp.sendRedirect(req.getContextPath() +
                                 "/user/availabilities?error=booking-failed&step=3&doctorId=" + doctorId + "&date=" + date);
                     }
 
+                } catch (NumberFormatException e) {
+                    System.err.println("❌ Invalid doctorId format");
+                    e.printStackTrace();
+                    resp.sendRedirect(req.getContextPath() +
+                            "/user/availabilities?error=invalid-doctor");
+
                 } catch (Exception e) {
-                    System.err.println("❌ Exception while booking:");
+                    System.err.println("❌ Exception during booking:");
                     e.printStackTrace();
                     resp.sendRedirect(req.getContextPath() +
                             "/user/availabilities?error=system-error");
                 }
+            }
+            if ("/settings".equals(pathInfo)){
+                System.out.println("helow sitings  ");
+                req.getRequestDispatcher("/Admin/settings.jsp").forward(req,resp);
             }
         }
 
@@ -491,8 +505,6 @@
                     UserRegisterRequestDTO userRegisterRequestDTO = new UserRegisterRequestDTO(name,email,role,password);
                     UserRegisterRequestDTO userRegisterRequestDTO1 = userService.register(userRegisterRequestDTO);
 
-
-
                     if (userRegisterRequestDTO1 != null) {
 
                         req.setAttribute("User",userRegisterRequestDTO1);
@@ -513,9 +525,14 @@
                 }
             }
             if ("login".equals(action)) {
+                System.out.println("====================================");
+                System.out.println("🔐 LOGIN ACTION");
+                System.out.println("====================================");
+
                 String email = req.getParameter("email");
                 String password = req.getParameter("password");
 
+                // Validate email
                 if (email == null || email.isEmpty() || !email.contains("@")) {
                     req.setAttribute("error", "Invalid email address!");
                     req.getRequestDispatcher("/login.jsp").forward(req, resp);
@@ -534,27 +551,48 @@
                     UserResponseDTO userResponseDTO = userService.login(userRequestDTO);
 
                     if (userResponseDTO != null) {
+                        // ✅ Create session
                         HttpSession session = req.getSession();
                         session.setAttribute("loggedUser", userResponseDTO);
-                        List<DoctorDTO> doctorDTOS = doctorService.getAllDoctor();
-                        req.setAttribute("doctors",doctorDTOS);
-                        req.setAttribute("user", userResponseDTO);
-                        req.setAttribute("countDoctors", doctorDTOS.size());
+                        session.setAttribute("username", userResponseDTO.getEmail());
+                        session.setAttribute("role", userResponseDTO.getRole().toString());
 
-                        req.getRequestDispatcher("/Admin/admin.jsp").forward(req, resp);
+                        System.out.println("✅ Login successful!");
+                        System.out.println("   User: " + userResponseDTO.getEmail());
+                        System.out.println("   Role: " + userResponseDTO.getRole());
+
+                        // ✅ Redirect based on role (NOT forward)
+                        if (Role.PATIENT.equals(userResponseDTO.getRole())) {
+                            System.out.println("→ Redirecting to PATIENT dashboard");
+                            resp.sendRedirect(req.getContextPath() + "/user/availabilities");
+
+                        } else if (Role.ADMIN.equals(userResponseDTO.getRole())) {
+                            System.out.println("→ Redirecting to ADMIN dashboard");
+                            resp.sendRedirect(req.getContextPath() + "/admin/dashboard");
+
+                        } else {
+                            System.out.println("→ Redirecting to default dashboard");
+                            resp.sendRedirect(req.getContextPath() + "/user/dashboard");
+                        }
+
                         return;
+
                     } else {
+                        System.err.println("❌ Login failed: Invalid credentials");
                         req.setAttribute("error", "Invalid email or password!");
                         req.getRequestDispatcher("/login.jsp").forward(req, resp);
                         return;
                     }
 
                 } catch (IllegalArgumentException e) {
+                    System.err.println("❌ Login failed: " + e.getMessage());
                     e.printStackTrace();
                     req.setAttribute("error", e.getMessage());
                     req.getRequestDispatcher("/login.jsp").forward(req, resp);
                     return;
+
                 } catch (Exception e) {
+                    System.err.println("❌ Login failed: Unexpected error");
                     e.printStackTrace();
                     req.setAttribute("error", "Unexpected error occurred. Please try again later.");
                     req.getRequestDispatcher("/login.jsp").forward(req, resp);
@@ -1050,10 +1088,7 @@
                     resp.sendRedirect(req.getContextPath() + "/user/availabilities?error=system-error");
                 }
             }
-
-
-
-            }
+        }
 
         @Override
         protected void doDelete(HttpServletRequest req, HttpServletResponse resp)
